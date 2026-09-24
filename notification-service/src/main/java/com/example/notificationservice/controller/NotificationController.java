@@ -1,6 +1,7 @@
 package com.example.notificationservice.controller;
 
 import com.example.notificationservice.dto.NotificationRequest;
+import com.example.notificationservice.dto.UserEventNotificationRequest;
 import com.example.notificationservice.service.NotificationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -30,8 +31,19 @@ public class NotificationController {
             @ApiResponse(responseCode = "200", description = "Сообщение отправлено"),
             @ApiResponse(responseCode = "400", description = "Некорректные данные")
     })
-    public ResponseEntity<Void> sendNotification(@Valid @RequestBody NotificationRequest request){
+    public ResponseEntity<Void> sendNotification(@Valid @RequestBody NotificationRequest request) {
         notificationService.sendNotification(request);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/user-event")
+    @Operation(summary = "Отправить сообщение об пользовательском событии на email пользователя")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Сообщение отправлено"),
+            @ApiResponse(responseCode = "400", description = "Некорректные данные")
+    })
+    public ResponseEntity<Void> sendUserEventNotification(@Valid @RequestBody UserEventNotificationRequest request) {
+        notificationService.sendUserEventNotification(request);
         return ResponseEntity.ok().build();
     }
 }
