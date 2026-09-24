@@ -2,5 +2,14 @@ spring:
   application:
     name: notification-service
 
+  mail:
+    host: localhost
+    port: 1025
+    username: username
+    password: password
+    properties:
+      mail.smtp.auth: false
+      mail.smtp.starttls: false
+
 server:
   port: 8081
