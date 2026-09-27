@@ -1,6 +1,6 @@
 package com.example.userservice.exceptionhandler;
 
-import com.example.userservice.dto.ErrorResponse;
+import com.example.common.dto.ErrorResponse;
 import com.example.userservice.exception.UserAlreadyExistsException;
 import com.example.userservice.exception.UserNotFoundException;
 import com.example.userservice.exception.UserServiceException;
@@ -17,9 +17,6 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-/**
- * Глобальный обработчик исключений
- */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
