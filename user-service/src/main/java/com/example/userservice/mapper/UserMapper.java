@@ -3,13 +3,14 @@ package com.example.userservice.mapper;
 import com.example.userservice.dto.UserRequest;
 import com.example.userservice.dto.UserResponse;
 import com.example.userservice.entity.UserEntity;
+
 /**
  * Маппинг данных для запросов и выходных данных
- *
- * @author Yushinova (TATYANA YUSHINOVA)
  */
 public final class UserMapper {
-    private UserMapper(){}
+    private UserMapper() {
+    }
+
     public static UserResponse toResponse(UserEntity entity) {
         if (entity == null) return null;
         return new UserResponse(
@@ -21,6 +22,6 @@ public final class UserMapper {
     }
 
     public static UserEntity toEntity(UserRequest request) {
-        return new UserEntity(request.getName(), request.getEmail(), request.getAge());
+        return new UserEntity(request.name(), request.email(), request.age());
     }
 }

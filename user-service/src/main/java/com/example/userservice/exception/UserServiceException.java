@@ -5,8 +5,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
  * Класс используется для передачи сообщения об ошибке при возникновении исключений в UserService.
- *
- * @author Simon35845
  */
 @ResponseStatus(HttpStatus.BAD_REQUEST)
 public class UserServiceException extends RuntimeException{

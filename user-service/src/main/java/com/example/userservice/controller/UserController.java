@@ -1,5 +1,6 @@
 package com.example.userservice.controller;
 
+import com.example.userservice.dto.PaginationRequest;
 import com.example.userservice.dto.UserRequest;
 import com.example.userservice.dto.UserResponse;
 import com.example.userservice.service.UserService;
@@ -8,6 +9,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,8 +18,6 @@ import java.util.List;
 
 /**
  * REST-контроллер для управления пользователями.
- *
- * @author FlameFlow21 (Shundev Kirill)
  */
 @RestController
 @RequestMapping("/users")
@@ -86,5 +86,23 @@ public class UserController {
     public ResponseEntity<Void> deleteUser(@PathVariable Integer id) {
         userService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("pagination")
+    @Operation(
+            summary = "Получить пользователей с пагинацией",
+            description = "Возвращает страницу пользователей с возможностью сортировки"
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(responseCode = "200", description = "Пользователи найдены"),
+                    @ApiResponse(responseCode = "400", description = "Некорректные параметры пагинации")
+            }
+    )
+    public ResponseEntity<Page<UserResponse>> getUsersWithPagination(
+            @Valid @ModelAttribute PaginationRequest request
+            ){
+        Page<UserResponse> response = userService.getAllWithPagination(request);
+        return ResponseEntity.ok(response);
     }
 }

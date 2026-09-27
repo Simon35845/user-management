@@ -1,5 +1,6 @@
 package com.example.userservice.service;
 
+import com.example.userservice.dto.PaginationRequest;
 import com.example.userservice.dto.UserRequest;
 import com.example.userservice.dto.UserResponse;
 import com.example.userservice.entity.UserEntity;
@@ -11,7 +12,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.*;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -29,48 +32,39 @@ class UserServiceTest {
     @InjectMocks
     private UserService userService;
 
-    /**
-     * @author FlameFlow21 (Shundev Kirill)
-     */
     @Test
     void createUser_successfully() {
         UserRequest userRequest = new UserRequest("Dave", "dave@example.com", 40);
         UserEntity savedUser = new UserEntity("Dave", "dave@example.com", 40);
         savedUser.setId(1);
 
-        when(userRepository.existsByEmail(userRequest.getEmail())).thenReturn(false);
+        when(userRepository.existsByEmail(userRequest.email())).thenReturn(false);
         when(userRepository.save(any(UserEntity.class))).thenReturn(savedUser);
 
         UserResponse userResponse = userService.createUser(userRequest);
         assertNotNull(userResponse);
-        assertEquals(userRequest.getName(), userResponse.getName());
-        assertEquals(userRequest.getEmail(), userResponse.getEmail());
-        assertEquals(userRequest.getAge(), userResponse.getAge());
-        verify(userRepository).existsByEmail(userRequest.getEmail());
+        assertEquals(userRequest.name(), userResponse.name());
+        assertEquals(userRequest.email(), userResponse.email());
+        assertEquals(userRequest.age(), userResponse.age());
+        verify(userRepository).existsByEmail(userRequest.email());
         verify(userRepository).save(any(UserEntity.class));
     }
 
-    /**
-     * @author FlameFlow21 (Shundev Kirill)
-     */
     @Test
     void createUser_ifEmailIsAlreadyOccupied() {
         UserRequest userRequest = new UserRequest("Dave", "bob@example.com", 40);
 
-        when(userRepository.existsByEmail(userRequest.getEmail())).thenReturn(true);
+        when(userRepository.existsByEmail(userRequest.email())).thenReturn(true);
 
         UserAlreadyExistsException exception = assertThrows(
                 UserAlreadyExistsException.class,
                 () -> userService.createUser(userRequest)
         );
         assertEquals("Пользователь с таким mail bob@example.com уже существует", exception.getMessage());
-        verify(userRepository).existsByEmail(userRequest.getEmail());
+        verify(userRepository).existsByEmail(userRequest.email());
         verify(userRepository, never()).save(any(UserEntity.class));
     }
 
-    /**
-     * @author FlameFlow21 (Shundev Kirill)
-     */
     @Test
     void updateUser_ifUserExists() {
         Integer id = 1;
@@ -81,21 +75,18 @@ class UserServiceTest {
         updatedUser.setId(id);
 
         when(userRepository.findById(id)).thenReturn(Optional.of(existingUser));
-        when(userRepository.findByEmail(userRequest.getEmail())).thenReturn(Optional.empty());
+        when(userRepository.findByEmail(userRequest.email())).thenReturn(Optional.empty());
 
         UserResponse userResponse = userService.updateUser(id, userRequest);
         assertNotNull(userResponse);
-        assertEquals(id, userResponse.getId());
-        assertEquals(userRequest.getName(), userResponse.getName());
-        assertEquals(userRequest.getEmail(), userResponse.getEmail());
-        assertEquals(userRequest.getAge(), userResponse.getAge());
+        assertEquals(id, userResponse.id());
+        assertEquals(userRequest.name(), userResponse.name());
+        assertEquals(userRequest.email(), userResponse.email());
+        assertEquals(userRequest.age(), userResponse.age());
         verify(userRepository).findById(id);
-        verify(userRepository).findByEmail(userRequest.getEmail());
+        verify(userRepository).findByEmail(userRequest.email());
     }
 
-    /**
-     * @author FlameFlow21 (Shundev Kirill)
-     */
     @Test
     void updateUser_ifUserNotExists() {
         Integer id = 99;
@@ -109,12 +100,9 @@ class UserServiceTest {
         );
         assertEquals("Пользователь с таким id 99 не найден", exception.getMessage());
         verify(userRepository).findById(id);
-        verify(userRepository, never()).findByEmail(userRequest.getEmail());
+        verify(userRepository, never()).findByEmail(userRequest.email());
     }
 
-    /**
-     * @author FlameFlow21 (Shundev Kirill)
-     */
     @Test
     void updateUser_ifEmailIsAlreadyOccupied() {
         Integer id = 1;
@@ -125,7 +113,7 @@ class UserServiceTest {
         foundByEmailUser.setId(2);
 
         when(userRepository.findById(id)).thenReturn(Optional.of(foundByIdUser));
-        when(userRepository.findByEmail(userRequest.getEmail())).thenReturn(Optional.of(foundByEmailUser));
+        when(userRepository.findByEmail(userRequest.email())).thenReturn(Optional.of(foundByEmailUser));
 
         UserAlreadyExistsException exception = assertThrows(
                 UserAlreadyExistsException.class,
@@ -136,12 +124,9 @@ class UserServiceTest {
                 exception.getMessage()
         );
         verify(userRepository).findById(id);
-        verify(userRepository).findByEmail(userRequest.getEmail());
+        verify(userRepository).findByEmail(userRequest.email());
     }
 
-    /**
-     * @author Simon35845
-     */
     @Test
     void getUserById_ifUserExists() {
         Integer id = 1;
@@ -150,15 +135,12 @@ class UserServiceTest {
         when(userRepository.findById(id)).thenReturn(Optional.of(user));
 
         UserResponse userResponse = userService.getUserById(id);
-        assertEquals(user.getName(), userResponse.getName());
-        assertEquals(user.getEmail(), userResponse.getEmail());
-        assertEquals(user.getAge(), userResponse.getAge());
+        assertEquals(user.getName(), userResponse.name());
+        assertEquals(user.getEmail(), userResponse.email());
+        assertEquals(user.getAge(), userResponse.age());
         verify(userRepository).findById(id);
     }
 
-    /**
-     * @author Simon35845
-     */
     @Test
     void getUserById_ifUserNotExists() {
         Integer id = 99;
@@ -173,9 +155,6 @@ class UserServiceTest {
         verify(userRepository).findById(id);
     }
 
-    /**
-     * @author Simon35845
-     */
     @Test
     void getAll_ifUsersExists() {
         UserEntity user1 = new UserEntity("Alice", "alice@example.com", 24);
@@ -189,21 +168,14 @@ class UserServiceTest {
         verify(userRepository).findAll();
     }
 
-    /**
-     * @author Simon35845
-     */
     @Test
     void getAll_ifUsersNotExists() {
         when(userRepository.findAll()).thenReturn(Collections.emptyList());
-
         List<UserResponse> userResponses = userService.getAll();
         assertEquals(0, userResponses.size());
         verify(userRepository).findAll();
     }
 
-    /**
-     * @author Yushinova
-     */
     @Test
     void deleteUser_ifUsersExists() {
         Integer id = 1;
@@ -215,9 +187,6 @@ class UserServiceTest {
         verify(userRepository).deleteById(id);
     }
 
-    /**
-     * @author Yushinova
-     */
     @Test
     void deleteUser_ifUserNotFoundTest() {
         Integer id = 99;
@@ -231,4 +200,44 @@ class UserServiceTest {
         verify(userRepository).existsById(id);
         verify(userRepository, never()).deleteById(id);
     }
+
+    @Test
+    void getAllUserWithPagination_ifUsersExists(){
+        UserEntity user1 = new UserEntity("Bob", "bob@email.com", 25);
+        user1.setId(1);
+        UserEntity user2 = new UserEntity("Lilu", "lilu@email.com", 55);
+        user2.setId(2);
+        UserEntity user3 = new UserEntity("John", "john@email.com", 48);
+        user3.setId(3);
+
+        List<UserEntity> firstPage = List.of(user1, user2, user3);
+        Pageable pageable = PageRequest.of(0,3, Sort.by("age").ascending());
+        Page<UserEntity> page = new PageImpl<>(firstPage, pageable, 5);
+        when(userRepository.findAll(pageable)).thenReturn(page);
+        PaginationRequest request = new PaginationRequest(0, 3, "age");
+        Page<UserResponse> result = userService.getAllWithPagination(request);
+        assertEquals(3, result.getContent().size());
+        assertEquals(5, result.getTotalElements());
+        assertEquals(2, result.getTotalPages());
+        assertEquals(0, result.getNumber());
+        assertEquals(3, result.getSize());
+        verify(userRepository).findAll(pageable);
+    }
+
+    @Test
+    void getAllUserWithPagination_ifUsersNotExists(){
+        List<UserEntity> users = List.of();
+        Pageable pageable = PageRequest.of(0,3, Sort.by("age").ascending());
+        Page<UserEntity> page = new PageImpl<>(users, pageable, 0);
+        when(userRepository.findAll(pageable)).thenReturn(page);
+        PaginationRequest request = new PaginationRequest(0, 3, "age");
+        Page<UserResponse> result = userService.getAllWithPagination(request);
+        assertEquals(0, result.getContent().size());
+        assertEquals(0, result.getTotalElements());
+        assertEquals(0, result.getTotalPages());
+        assertEquals(0, result.getNumber());
+        assertEquals(3, result.getSize());
+        verify(userRepository).findAll(pageable);
+    }
+
 }
