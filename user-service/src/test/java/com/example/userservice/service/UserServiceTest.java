@@ -4,6 +4,7 @@ import com.example.userservice.dto.PaginationRequest;
 import com.example.userservice.dto.UserRequest;
 import com.example.userservice.dto.UserResponse;
 import com.example.userservice.entity.UserEntity;
+import com.example.userservice.eventproducer.UserEventProducer;
 import com.example.userservice.exception.UserAlreadyExistsException;
 import com.example.userservice.exception.UserNotFoundException;
 import com.example.userservice.repository.UserRepository;
@@ -28,6 +29,9 @@ class UserServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private UserEventProducer userEventProducer;
 
     @InjectMocks
     private UserService userService;
@@ -98,7 +102,7 @@ class UserServiceTest {
                 UserNotFoundException.class,
                 () -> userService.updateUser(id, userRequest)
         );
-        assertEquals("Пользователь с таким id 99 не найден", exception.getMessage());
+        assertEquals("Пользователь с id=99 не найден", exception.getMessage());
         verify(userRepository).findById(id);
         verify(userRepository, never()).findByEmail(userRequest.email());
     }
@@ -179,11 +183,13 @@ class UserServiceTest {
     @Test
     void deleteUser_ifUsersExists() {
         Integer id = 1;
+        UserEntity existingUser = new UserEntity("Alice", "alice@example.com", 24);
+        existingUser.setId(id);
 
-        when(userRepository.existsById(id)).thenReturn(true);
+        when(userRepository.findById(id)).thenReturn(Optional.of(existingUser));
 
         userService.delete(id);
-        verify(userRepository).existsById(id);
+        verify(userRepository).findById(id);
         verify(userRepository).deleteById(id);
     }
 
@@ -191,13 +197,13 @@ class UserServiceTest {
     void deleteUser_ifUserNotFoundTest() {
         Integer id = 99;
 
-        when(userRepository.existsById(id)).thenReturn(false);
+        when(userRepository.findById(id)).thenReturn(Optional.empty());
 
         UserNotFoundException exception = assertThrows(
                 UserNotFoundException.class, () -> userService.delete(id)
         );
         assertEquals("Пользователь с id=99 не найден", exception.getMessage());
-        verify(userRepository).existsById(id);
+        verify(userRepository).findById(id);
         verify(userRepository, never()).deleteById(id);
     }
 
