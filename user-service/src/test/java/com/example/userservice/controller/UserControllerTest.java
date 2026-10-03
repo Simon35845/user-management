@@ -5,6 +5,7 @@ import com.example.userservice.dto.UserRequest;
 import com.example.userservice.dto.UserResponse;
 import com.example.userservice.exception.UserAlreadyExistsException;
 import com.example.userservice.exception.UserNotFoundException;
+import com.example.userservice.hateoas.UserModelAssembler;
 import com.example.userservice.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
@@ -12,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -23,6 +25,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.List;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -30,6 +33,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(UserController.class)
+@Import(UserModelAssembler.class)
 class UserControllerTest {
 
     @Autowired
@@ -57,8 +61,11 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.name").value("Иван"))
                 .andExpect(jsonPath("$.email").value("ivan@mail.ru"))
-                .andExpect(jsonPath("$.age").value(25));
-
+                .andExpect(jsonPath("$.age").value(25))
+                .andExpect(jsonPath("$._links.self.href").value(containsString("/users/1")))
+                .andExpect(jsonPath("$._links.users.href").value(containsString("/users")))
+                .andExpect(jsonPath("$._links.pagination.href")
+                        .value(containsString("/users/pagination")));
         verify(userService, times(1)).createUser(any(UserRequest.class));
     }
 
@@ -101,7 +108,11 @@ class UserControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.name").value("Иван"))
-                .andExpect(jsonPath("$.email").value("ivan@mail.ru"));
+                .andExpect(jsonPath("$.email").value("ivan@mail.ru"))
+                .andExpect(jsonPath("$._links.self.href").value(containsString("/users/1")))
+                .andExpect(jsonPath("$._links.users.href").value(containsString("/users")))
+                .andExpect(jsonPath("$._links.pagination.href")
+                        .value(containsString("/users/pagination")));
     }
 
     @Test
@@ -127,9 +138,10 @@ class UserControllerTest {
 
         mockMvc.perform(get("/users"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.size()").value(2))
-                .andExpect(jsonPath("$[0].name").value("Иван"))
-                .andExpect(jsonPath("$[1].name").value("Пётр"));
+                .andExpect(jsonPath("$._embedded.userResponseList.size()").value(2))
+                .andExpect(jsonPath("$._embedded.userResponseList[0].name").value("Иван"))
+                .andExpect(jsonPath("$._embedded.userResponseList[1].name").value("Пётр"))
+                .andExpect(jsonPath("$._links.self.href").value(containsString("/users")));
     }
 
     @Test
@@ -140,7 +152,7 @@ class UserControllerTest {
 
         mockMvc.perform(get("/users"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.size()").value(0));
+                .andExpect(jsonPath("$._embedded").doesNotExist());
     }
 
     @Test
@@ -157,8 +169,11 @@ class UserControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("Иван Сидоров"))
                 .andExpect(jsonPath("$.email").value("ivan_new@mail.ru"))
-                .andExpect(jsonPath("$.age").value(35));
-
+                .andExpect(jsonPath("$.age").value(35))
+                .andExpect(jsonPath("$._links.self.href").value(containsString("/users/1")))
+                .andExpect(jsonPath("$._links.users.href").value(containsString("/users")))
+                .andExpect(jsonPath("$._links.pagination.href")
+                        .value(containsString("/users/pagination")));
         verify(userService, times(1)).updateUser(eq(1), any(UserRequest.class));
     }
 
@@ -230,11 +245,17 @@ class UserControllerTest {
                         .param("page", "0")
                         .param("size", "2"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content.size()").value(2))
-                .andExpect(jsonPath("$.content[0].name").value("Иван"))
-                .andExpect(jsonPath("$.content[1].name").value("Пётр"))
-                .andExpect(jsonPath("$.totalElements").value(2))
-                .andExpect(jsonPath("$.totalPages").value(1));
+                .andExpect(jsonPath("$._embedded.userResponseList.size()").value(2))
+                .andExpect(jsonPath("$._embedded.userResponseList[0].id").value(1))
+                .andExpect(jsonPath("$._embedded.userResponseList[0].name").value("Иван"))
+                .andExpect(jsonPath("$._embedded.userResponseList[1].id").value(2))
+                .andExpect(jsonPath("$._embedded.userResponseList[1].name").value("Пётр"))
+                .andExpect(jsonPath("$._links.self.href")
+                        .value(containsString("/users/pagination?page=0&size=2&sort=id,asc")))
+                .andExpect(jsonPath("$.page.totalElements").value(2))
+                .andExpect(jsonPath("$.page.totalPages").value(1))
+                .andExpect(jsonPath("$.page.size").value(2))
+                .andExpect(jsonPath("$.page.number").value(0));
     }
 
     @Test
@@ -272,13 +293,17 @@ class UserControllerTest {
                         .param("page", "0")
                         .param("size", "2"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content.size()").value(2))
-                .andExpect(jsonPath("$.content[0].id").value(1))
-                .andExpect(jsonPath("$.content[0].name").value("Иван"))
-                .andExpect(jsonPath("$.content[1].id").value(2))
-                .andExpect(jsonPath("$.content[1].name").value("Пётр"))
-                .andExpect(jsonPath("$.totalElements").value(2))
-                .andExpect(jsonPath("$.totalPages").value(1));
+                .andExpect(jsonPath("$._embedded.userResponseList.size()").value(2))
+                .andExpect(jsonPath("$._embedded.userResponseList[0].id").value(1))
+                .andExpect(jsonPath("$._embedded.userResponseList[0].name").value("Иван"))
+                .andExpect(jsonPath("$._embedded.userResponseList[1].id").value(2))
+                .andExpect(jsonPath("$._embedded.userResponseList[1].name").value("Пётр"))
+                .andExpect(jsonPath("$._links.self.href")
+                        .value(containsString("/users/pagination?page=0&size=2&sort=id,asc")))
+                .andExpect(jsonPath("$.page.totalElements").value(2))
+                .andExpect(jsonPath("$.page.totalPages").value(1))
+                .andExpect(jsonPath("$.page.size").value(2))
+                .andExpect(jsonPath("$.page.number").value(0));
 
         ArgumentCaptor<PaginationRequest> captor = ArgumentCaptor.forClass(PaginationRequest.class);
         verify(userService).getAllWithPagination(captor.capture());
@@ -292,8 +317,8 @@ class UserControllerTest {
     @DisplayName("GET /users/pagination — с sortBy возвращает 200 и пробрасывает sortBy в сервис")
     void getUsersWithPagination_WithSortBy_ShouldReturn200AndPassSortBy() throws Exception {
         List<UserResponse> users = List.of(
-                new UserResponse(2, "Пётр", "petr@mail.ru", 30),
-                new UserResponse(1, "Иван", "ivan@mail.ru", 25)
+                new UserResponse(1, "Иван", "ivan@mail.ru", 25),
+                new UserResponse(2, "Пётр", "petr@mail.ru", 30)
         );
         Page<UserResponse> page = new PageImpl<>(
                 users,
@@ -308,11 +333,15 @@ class UserControllerTest {
                         .param("size", "2")
                         .param("sortBy", "age"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content.size()").value(2))
-                .andExpect(jsonPath("$.content[0].age").value(30))
-                .andExpect(jsonPath("$.content[1].age").value(25))
-                .andExpect(jsonPath("$.totalElements").value(2))
-                .andExpect(jsonPath("$.totalPages").value(1));
+                .andExpect(jsonPath("$._embedded.userResponseList.size()").value(2))
+                .andExpect(jsonPath("$._embedded.userResponseList[0].age").value(25))
+                .andExpect(jsonPath("$._embedded.userResponseList[1].age").value(30))
+                .andExpect(jsonPath("$._links.self.href")
+                        .value(containsString("/users/pagination?page=0&size=2&sort=age,asc")))
+                .andExpect(jsonPath("$.page.totalElements").value(2))
+                .andExpect(jsonPath("$.page.totalPages").value(1))
+                .andExpect(jsonPath("$.page.size").value(2))
+                .andExpect(jsonPath("$.page.number").value(0));
 
         ArgumentCaptor<PaginationRequest> captor = ArgumentCaptor.forClass(PaginationRequest.class);
         verify(userService).getAllWithPagination(captor.capture());
@@ -332,5 +361,4 @@ class UserControllerTest {
 
         verifyNoInteractions(userService);
     }
-
 }

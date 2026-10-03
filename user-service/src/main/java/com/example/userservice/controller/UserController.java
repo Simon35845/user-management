@@ -3,6 +3,7 @@ package com.example.userservice.controller;
 import com.example.userservice.dto.PaginationRequest;
 import com.example.userservice.dto.UserRequest;
 import com.example.userservice.dto.UserResponse;
+import com.example.userservice.hateoas.UserModelAssembler;
 import com.example.userservice.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -10,6 +11,10 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
+import org.springframework.data.web.PagedResourcesAssembler;
+import org.springframework.hateoas.CollectionModel;
+import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.PagedModel;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -25,11 +30,18 @@ import java.util.List;
 public class UserController {
 
     private final UserService userService;
+    private final UserModelAssembler userModelAssembler;
+    private final PagedResourcesAssembler<UserResponse> pagedResourcesAssembler;
 
-    public UserController(UserService userService) {
+    public UserController(
+            UserService userService,
+            UserModelAssembler userModelAssembler,
+            PagedResourcesAssembler<UserResponse> pagedResourcesAssembler
+    ) {
         this.userService = userService;
+        this.userModelAssembler = userModelAssembler;
+        this.pagedResourcesAssembler = pagedResourcesAssembler;
     }
-
 
     @PostMapping
     @Operation(summary = "Создать пользователя", description = "Создаёт нового пользователя")
@@ -38,9 +50,10 @@ public class UserController {
             @ApiResponse(responseCode = "400", description = "Некорректные данные"),
             @ApiResponse(responseCode = "409", description = "Email уже занят")
     })
-    public ResponseEntity<UserResponse> createUser(@Valid @RequestBody UserRequest request) {
+    public ResponseEntity<EntityModel<UserResponse>> createUser(@Valid @RequestBody UserRequest request) {
         UserResponse response = userService.createUser(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        EntityModel<UserResponse> entityModel = userModelAssembler.toExtendedModel(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(entityModel);
     }
 
     @GetMapping("/{id}")
@@ -49,17 +62,19 @@ public class UserController {
             @ApiResponse(responseCode = "200", description = "Пользователь найден"),
             @ApiResponse(responseCode = "404", description = "Пользователь не найден")
     })
-    public ResponseEntity<UserResponse> getUserById(@PathVariable Integer id) {
+    public ResponseEntity<EntityModel<UserResponse>> getUserById(@PathVariable Integer id) {
         UserResponse response = userService.getUserById(id);
-        return ResponseEntity.ok(response);
+        EntityModel<UserResponse> entityModel = userModelAssembler.toExtendedModel(response);
+        return ResponseEntity.ok(entityModel);
     }
 
     @GetMapping
     @Operation(summary = "Получить всех пользователей")
     @ApiResponse(responseCode = "200", description = "Список пользователей")
-    public ResponseEntity<List<UserResponse>> getAllUsers() {
+    public ResponseEntity<CollectionModel<EntityModel<UserResponse>>> getAllUsers() {
         List<UserResponse> response = userService.getAll();
-        return ResponseEntity.ok(response);
+        CollectionModel<EntityModel<UserResponse>> collectionModel = userModelAssembler.toCollectionModel(response);
+        return ResponseEntity.ok(collectionModel);
     }
 
     @PutMapping("/{id}")
@@ -70,11 +85,12 @@ public class UserController {
             @ApiResponse(responseCode = "404", description = "Пользователь не найден"),
             @ApiResponse(responseCode = "409", description = "Email уже занят")
     })
-    public ResponseEntity<UserResponse> updateUser(
+    public ResponseEntity<EntityModel<UserResponse>> updateUser(
             @PathVariable Integer id,
             @Valid @RequestBody UserRequest request) {
         UserResponse response = userService.updateUser(id, request);
-        return ResponseEntity.ok(response);
+        EntityModel<UserResponse> entityModel = userModelAssembler.toExtendedModel(response);
+        return ResponseEntity.ok(entityModel);
     }
 
     @DeleteMapping("/{id}")
@@ -88,7 +104,7 @@ public class UserController {
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("pagination")
+    @GetMapping("/pagination")
     @Operation(
             summary = "Получить пользователей с пагинацией",
             description = "Возвращает страницу пользователей с возможностью сортировки"
@@ -99,10 +115,11 @@ public class UserController {
                     @ApiResponse(responseCode = "400", description = "Некорректные параметры пагинации")
             }
     )
-    public ResponseEntity<Page<UserResponse>> getUsersWithPagination(
+    public ResponseEntity<PagedModel<EntityModel<UserResponse>>> getUsersWithPagination(
             @Valid @ModelAttribute PaginationRequest request
-            ){
-        Page<UserResponse> response = userService.getAllWithPagination(request);
-        return ResponseEntity.ok(response);
+    ) {
+        Page<UserResponse> page = userService.getAllWithPagination(request);
+        PagedModel<EntityModel<UserResponse>> pagedModel = pagedResourcesAssembler.toModel(page, userModelAssembler);
+        return ResponseEntity.ok(pagedModel);
     }
 }
