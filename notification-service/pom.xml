@@ -13,6 +13,10 @@
     <packaging>jar</packaging>
     <name>Notification service</name>
 
+    <properties>
+        <testcontainers.version>1.21.4</testcontainers.version>
+    </properties>
+
     <dependencies>
         <!-- REST API -->
         <dependency>
