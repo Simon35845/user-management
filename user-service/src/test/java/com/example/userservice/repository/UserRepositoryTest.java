@@ -32,7 +32,7 @@ class UserRepositoryTest {
 
     @Container
     @ServiceConnection
-    private static final PostgreSQLContainer<?> POSTGRES_CONTAINER = new PostgreSQLContainer<>("postgres:16")
+    private static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16")
             .withDatabaseName("testdb")
             .withUsername("test")
             .withPassword("test");
@@ -69,25 +69,25 @@ class UserRepositoryTest {
     @Test
     void existById_ifIdExists() {
         Integer id = 2;
-        assertEquals(true, userRepository.existsById(id));
+        assertTrue(userRepository.existsById(id));
     }
 
     @Test
     void existById_ifIdNotExists() {
         Integer id = 999;
-        assertEquals(false, userRepository.existsById(id));
+        assertFalse(userRepository.existsById(id));
     }
 
     @Test
     void existsByEmail_ifEmailExists() {
         String email = "bob@example.com";
-        assertEquals(true, userRepository.existsByEmail(email));
+        assertTrue(userRepository.existsByEmail(email));
     }
 
     @Test
     void existsByEmail_ifEmailNotExists() {
         String email = "johndoe@example.com";
-        assertEquals(false, userRepository.existsByEmail(email));
+        assertFalse(userRepository.existsByEmail(email));
     }
 
     @Test
@@ -142,7 +142,7 @@ class UserRepositoryTest {
     void deleteById_ifUserExists() {
         Integer id = 3;
         userRepository.deleteById(id);
-        assertEquals(false, userRepository.existsById(id));
+        assertFalse(userRepository.existsById(id));
     }
 
     @Test
@@ -157,16 +157,10 @@ class UserRepositoryTest {
     void findAllWithPagination_ifUserExists(){
         Pageable pageable = PageRequest.of(2, 2, Sort.by("age").ascending());
         Page<UserEntity> page = userRepository.findAll(pageable);
-        //нумерация страниц начинается с 0. page = 2 — это 3-я страница.
-        //смещение: 2 * 2 = 4, поэтому пропускаются первые 4 записи.
         assertEquals(2, page.getNumber());
-        //показывает количество страниц, если мы передали 2 элемента на странице
         assertEquals(3, page.getTotalPages());
-        //показывает сколько мы запросили элементов на страницу
         assertEquals(2, page.getSize());
-        //показывает сколько всего записей
         assertEquals(5, page.getTotalElements());
-        //это актуальное количество записей на странице
         assertEquals(1, page.getContent().size());
     }
 }
