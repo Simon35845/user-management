@@ -5,3 +5,8 @@ spring:
       auto-startup: false
     listener:
       auto-startup: false
+
+openapi:
+  server:
+    url: http://localhost:8080
+    description: API Gateway

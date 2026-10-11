@@ -1,3 +1,6 @@
+server:
+  port: 8082
+
 spring:
   application:
     name: notification-service
@@ -29,5 +32,20 @@ spring:
       mail.smtp.auth: false
       mail.smtp.starttls: false
 
-server:
-  port: 8081
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true
+
+springdoc:
+  api-docs:
+    path: /notification/v3/api-docs
+  swagger-ui:
+    path: /notification/swagger-ui/index.html
+
+openapi:
+  server:
+    url: http://localhost:8080
+    description: API Gateway

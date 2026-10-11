@@ -1,3 +1,6 @@
+server:
+  port: 8081
+
 spring:
   application:
     name: user-service
@@ -20,5 +23,20 @@ spring:
     enabled: true
     baseline-on-migrate: true
 
-server:
-  port: 8080
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true
+
+springdoc:
+  api-docs:
+    path: /users/v3/api-docs
+  swagger-ui:
+    path: /users/swagger-ui/index.html
+
+openapi:
+  server:
+    url: http://localhost:8080
+    description: API Gateway
