@@ -6,6 +6,7 @@ import com.example.userservice.dto.UserResponse;
 import com.example.userservice.hateoas.UserModelAssembler;
 import com.example.userservice.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -62,7 +63,9 @@ public class UserController {
             @ApiResponse(responseCode = "200", description = "Пользователь найден"),
             @ApiResponse(responseCode = "404", description = "Пользователь не найден")
     })
-    public ResponseEntity<EntityModel<UserResponse>> getUserById(@PathVariable Integer id) {
+    public ResponseEntity<EntityModel<UserResponse>> getUserById(
+            @Parameter(description = "ID пользователя", example = "1")
+            @PathVariable Integer id) {
         UserResponse response = userService.getUserById(id);
         EntityModel<UserResponse> entityModel = userModelAssembler.toExtendedModel(response);
         return ResponseEntity.ok(entityModel);
@@ -86,6 +89,7 @@ public class UserController {
             @ApiResponse(responseCode = "409", description = "Email уже занят")
     })
     public ResponseEntity<EntityModel<UserResponse>> updateUser(
+            @Parameter(description = "ID пользователя", example = "1")
             @PathVariable Integer id,
             @Valid @RequestBody UserRequest request) {
         UserResponse response = userService.updateUser(id, request);
@@ -99,7 +103,9 @@ public class UserController {
             @ApiResponse(responseCode = "204", description = "Пользователь удалён"),
             @ApiResponse(responseCode = "404", description = "Пользователь не найден")
     })
-    public ResponseEntity<Void> deleteUser(@PathVariable Integer id) {
+    public ResponseEntity<Void> deleteUser(
+            @Parameter(description = "ID пользователя", example = "1")
+            @PathVariable Integer id) {
         userService.delete(id);
         return ResponseEntity.noContent().build();
     }
