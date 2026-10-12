@@ -5,6 +5,10 @@ spring:
       auto-startup: false
     listener:
       auto-startup: false
+  config:
+    import: optional:configserver:http://localhost:8888
+  application:
+    name: notification-service
 
 openapi:
   server:

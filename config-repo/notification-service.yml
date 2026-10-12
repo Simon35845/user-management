@@ -1,0 +1,32 @@
+server:
+  port: 8082
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5433/postgres
+    username: postgres
+    password: 12345678
+    driver-class-name: org.postgresql.Driver
+
+  mail:
+    host: localhost
+    port: 1025
+    username: username
+    password: password
+    properties:
+      mail:
+        smtp:
+          auth: false
+          starttls:
+            enable: false
+
+springdoc:
+  api-docs:
+    path: /notification/v3/api-docs
+  swagger-ui:
+    path: /notification/swagger-ui/index.html
+
+openapi:
+  server:
+    url: http://localhost:8080
+    description: API Gateway
