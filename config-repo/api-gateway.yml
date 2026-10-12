@@ -1,0 +1,25 @@
+server:
+  port: 8080
+
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: user-service-route
+          uri: lb://user-service
+          predicates:
+            - Path=/users/**
+        - id: notification-service-route
+          uri: lb://notification-service
+          predicates:
+            - Path=/notification/**
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui/index.html
+    config-url: /v3/api-docs/swagger-config
+    urls:
+      - name: user-service
+        url: /users/v3/api-docs
+      - name: notification-service
+        url: /notification/v3/api-docs
