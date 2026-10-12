@@ -12,10 +12,19 @@ spring:
           uri: lb://user-service
           predicates:
             - Path=/users/**
+          filters:
+              - name: CircuitBreaker
+                args:
+                  name: userServiceCircuitBreaker
+
         - id: notification-service-route
           uri: lb://notification-service
           predicates:
             - Path=/notification/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: notificationServiceCircuitBreaker
 
 eureka:
   client:
@@ -32,3 +41,22 @@ springdoc:
         url: /users/v3/api-docs
       - name: notification-service
         url: /notification/v3/api-docs
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      userServiceCircuitBreaker:
+        minimumNumberOfCalls: 5         # процент ошибок после 5 запросов
+        slidingWindowSize: 10           # анализирует последние 10 запросов
+        failureRateThreshold: 50        # если 50% запросов упали — размыкает
+        waitDurationInOpenState: 10s    # держит разомкнутым 10 секунд
+        permittedNumberOfCallsInHalfOpenState: 2  # пробует 2 запроса
+        registerHealthIndicator: true
+
+      notificationServiceCircuitBreaker:
+        minimumNumberOfCalls: 5
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 2
+        registerHealthIndicator: true

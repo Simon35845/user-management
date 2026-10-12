@@ -1,10 +1,8 @@
-# Добавление Swagger-документации и HATEOAS в API.
+# Добавить к существующей системе паттерны: gateway api, service discovery, circuit breaker, external configuration.
 
-- Задокументировать существующее API (из задания 4) с помощью Swagger (Springdoc OpenAPI), чтобы можно было легко изучить и тестировать API через веб-интерфейс.
-- Добавить поддержку HATEOAS, чтобы API предоставляло ссылки для навигации по ресурсам.
 ## Команда
 | Роль | Имя           | Вклад                                           |
 |:---|:--------------|:------------------------------------------------|
-| Team Lead | FlameFlow2001 | Документация существующих API с помощью Swagger |
-| Developer 1 | Yushinova     | Код ревью                                       |
-| Developer 2 | Simon35845    | Добавление поддержки HATEOAS                    |
+| Team Lead | Simon35845  | gateway api, service discovery |
+| Developer 1 | Yushinova     | circuit breaker                                       |
+| Developer 2 | FlameFlow2001    | external configuration                    |
