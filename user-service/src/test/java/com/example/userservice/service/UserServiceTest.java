@@ -1,5 +1,6 @@
 package com.example.userservice.service;
 
+import com.example.common.dto.UserEvent;
 import com.example.userservice.dto.PaginationRequest;
 import com.example.userservice.dto.UserRequest;
 import com.example.userservice.dto.UserResponse;
@@ -15,7 +16,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.*;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -52,6 +52,7 @@ class UserServiceTest {
         assertEquals(userRequest.age(), userResponse.age());
         verify(userRepository).existsByEmail(userRequest.email());
         verify(userRepository).save(any(UserEntity.class));
+        verify(userEventProducer).sendEvent(any(UserEvent.class));
     }
 
     @Test
@@ -67,6 +68,7 @@ class UserServiceTest {
         assertEquals("Пользователь с таким mail bob@example.com уже существует", exception.getMessage());
         verify(userRepository).existsByEmail(userRequest.email());
         verify(userRepository, never()).save(any(UserEntity.class));
+        verify(userEventProducer, never()).sendEvent(any(UserEvent.class));
     }
 
     @Test
@@ -75,8 +77,6 @@ class UserServiceTest {
         UserRequest userRequest = new UserRequest("Alice Updated", "alice.new@example.com", 25);
         UserEntity existingUser = new UserEntity("Alice", "alice@example.com", 24);
         existingUser.setId(id);
-        UserEntity updatedUser = new UserEntity("Alice Updated", "alice.new@example.com", 25);
-        updatedUser.setId(id);
 
         when(userRepository.findById(id)).thenReturn(Optional.of(existingUser));
         when(userRepository.findByEmail(userRequest.email())).thenReturn(Optional.empty());
@@ -191,6 +191,7 @@ class UserServiceTest {
         userService.delete(id);
         verify(userRepository).findById(id);
         verify(userRepository).deleteById(id);
+        verify(userEventProducer).sendEvent(any(UserEvent.class));
     }
 
     @Test
@@ -205,6 +206,7 @@ class UserServiceTest {
         assertEquals("Пользователь с id=99 не найден", exception.getMessage());
         verify(userRepository).findById(id);
         verify(userRepository, never()).deleteById(id);
+        verify(userEventProducer, never()).sendEvent(any(UserEvent.class));
     }
 
     @Test
@@ -215,13 +217,14 @@ class UserServiceTest {
         user2.setId(2);
         UserEntity user3 = new UserEntity("John", "john@email.com", 48);
         user3.setId(3);
-
         List<UserEntity> firstPage = List.of(user1, user2, user3);
         Pageable pageable = PageRequest.of(0,3, Sort.by("age").ascending());
         Page<UserEntity> page = new PageImpl<>(firstPage, pageable, 5);
+
         when(userRepository.findAll(pageable)).thenReturn(page);
         PaginationRequest request = new PaginationRequest(0, 3, "age");
         Page<UserResponse> result = userService.getAllWithPagination(request);
+
         assertEquals(3, result.getContent().size());
         assertEquals(5, result.getTotalElements());
         assertEquals(2, result.getTotalPages());
@@ -235,9 +238,11 @@ class UserServiceTest {
         List<UserEntity> users = List.of();
         Pageable pageable = PageRequest.of(0,3, Sort.by("age").ascending());
         Page<UserEntity> page = new PageImpl<>(users, pageable, 0);
+
         when(userRepository.findAll(pageable)).thenReturn(page);
         PaginationRequest request = new PaginationRequest(0, 3, "age");
         Page<UserResponse> result = userService.getAllWithPagination(request);
+
         assertEquals(0, result.getContent().size());
         assertEquals(0, result.getTotalElements());
         assertEquals(0, result.getTotalPages());
@@ -245,5 +250,4 @@ class UserServiceTest {
         assertEquals(3, result.getSize());
         verify(userRepository).findAll(pageable);
     }
-
 }
