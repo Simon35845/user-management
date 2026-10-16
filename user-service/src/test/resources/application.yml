@@ -1,16 +1,27 @@
 spring:
+  application:
+    name: user-service
+  cloud:
+    config:
+      enabled: false
+    discovery:
+      enabled: false
+    loadbalancer:
+      enabled: false
   kafka:
     bootstrap-servers: localhost:9092
     consumer:
       auto-startup: false
     listener:
       auto-startup: false
-  config:
-    import: optional:configserver:http://localhost:8888
-  application:
-    name: user-service
 
 openapi:
   server:
     url: http://localhost:8080
     description: API Gateway
+
+eureka:
+  client:
+    enabled: false
+    register-with-eureka: false
+    fetch-registry: false
