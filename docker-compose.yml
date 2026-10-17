@@ -1,60 +1,142 @@
-version: '3.8'
-
 services:
-  postgres-1:
+  postgres-users:
     image: postgres:16
-    container_name: user-postgres
+    container_name: postgres-users
     environment:
       POSTGRES_PASSWORD: "12345678"
-      POSTGRES_USER: "postgres"
-      POSTGRES_DB: "postgres"
-      POSTGRES_HOST_AUTH_METHOD: "trust"
+      POSTGRES_USER: postgres
+      POSTGRES_DB: postgres
+      POSTGRES_HOST_AUTH_METHOD: trust
     ports:
       - "5432:5432"
     volumes:
       - postgres_data_1:/var/lib/postgresql/data
     restart: unless-stopped
 
-  postgres-2:
+  postgres-notifications:
     image: postgres:16
-    container_name: notification-postgres
+    container_name: postgres-notifications
     environment:
       POSTGRES_PASSWORD: "12345678"
-      POSTGRES_USER: "postgres"
-      POSTGRES_DB: "postgres"
-      POSTGRES_HOST_AUTH_METHOD: "trust"
+      POSTGRES_USER: postgres
+      POSTGRES_DB: postgres
+      POSTGRES_HOST_AUTH_METHOD: trust
     ports:
       - "5433:5432"
     volumes:
       - postgres_data_2:/var/lib/postgresql/data
     restart: unless-stopped
 
-  mailhog:
+  mailhog-notifications:
     image: mailhog/mailhog
-    container_name: user-mailhog
+    container_name: mailhog-notifications
     ports:
-      - "1025:1025" #SMTP server
-      - "8025:8025" #Web UI
+      - "1025:1025"
+      - "8025:8025"
 
-  kafka:
+  kafka-user-events:
     image: apache/kafka:4.3.1
-    container_name: user-kafka
+    container_name: kafka-user-events
     ports:
       - "9092:9092"
+      - "29092:29092"
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093,PLAINTEXT_HOST://0.0.0.0:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-user-events:9092,PLAINTEXT_HOST://localhost:29092
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
-      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka-user-events:9093
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
     volumes:
       - kafka_data:/var/lib/kafka/data
+
+  config-server:
+    build:
+      context: ./config-server
+      dockerfile: Dockerfile
+    container_name: config-server
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./config-repo:/config-repo:ro
+    environment:
+      SPRING_PROFILES_ACTIVE: native
+      CONFIG_REPO_PATH: file:/config-repo
+
+  eureka-server:
+    build:
+      context: ./eureka-server
+      dockerfile: Dockerfile
+    container_name: eureka-server
+    ports:
+      - "8761:8761"
+    volumes:
+      - ./config-repo:/config-repo:ro
+
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    container_name: api-gateway
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./config-repo:/config-repo:ro
+    depends_on:
+      - config-server
+      - eureka-server
+    environment:
+      CONFIG_SERVER_URL: http://config-server:8888
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+
+  user-service:
+    build:
+      context: ./user-service
+      dockerfile: Dockerfile
+    container_name: user-service
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./config-repo:/config-repo:ro
+    depends_on:
+      - config-server
+      - eureka-server
+      - postgres-users
+    environment:
+      CONFIG_SERVER_URL: http://config-server:8888
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-users:5432/postgres
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: "12345678"
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka-user-events:9092
+
+  notification-service:
+    build:
+      context: ./notification-service
+      dockerfile: Dockerfile
+    container_name: notification-service
+    ports:
+      - "8082:8082"
+    volumes:
+      - ./config-repo:/config-repo:ro
+    depends_on:
+      - config-server
+      - eureka-server
+      - postgres-notifications
+      - mailhog-notifications
+    environment:
+      CONFIG_SERVER_URL: http://config-server:8888
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-notifications:5432/postgres
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: "12345678"
+      SPRING_MAIL_HOST: mailhog-notifications
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka-user-events:9092
 
 volumes:
   postgres_data_1:
