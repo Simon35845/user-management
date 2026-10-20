@@ -3,6 +3,7 @@ package com.example.userservice.config;
 import com.example.common.dto.UserEvent;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
@@ -16,10 +17,13 @@ import java.util.Map;
 @Configuration
 public class KafkaProducerConfig {
 
+    @Value("${spring.kafka.bootstrap-servers:localhost:9092}")
+    private String bootstrapServers;
+
     @Bean
     public ProducerFactory<String, UserEvent> producerFactory(){
         Map<String, Object> properties = new HashMap<>();
-        properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+        properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         properties.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
         properties.put(ProducerConfig.ACKS_CONFIG, "all");
         properties.put(ProducerConfig.RETRIES_CONFIG, Integer.MAX_VALUE);
